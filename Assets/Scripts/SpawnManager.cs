@@ -20,15 +20,24 @@ public class SpawnManager : MonoBehaviour
     public GameObject alienSpawn = null;
     
     int nextWaveCount = 1;
+    int spawnRemaining = 0;
+    int nextAlienSpawnSleep = 0;
     
-    void Start() {
-        
-    }
+    void Start() {}
 
     void Update() {
-        if(AlienManager.GetInstance().GetAliens().Count == 0) {
+        if(AlienManager.GetInstance().GetAliens().Count == 0 && spawnRemaining == 0) {
             SpawnWave();
         }
+    }
+    
+    void FixedUpdate() {
+        if(spawnRemaining > 0 && nextAlienSpawnSleep <= 0) {
+            SpawnAlien(alienSpawn.transform.position);
+            spawnRemaining -= 1;
+            nextAlienSpawnSleep = 25;
+        }
+        nextAlienSpawnSleep -= 1;
     }
     
     void SpawnAlien(Vector3 position) {
@@ -37,10 +46,7 @@ public class SpawnManager : MonoBehaviour
     }
     
     void SpawnWave() {
-        for(int i = 0; i < nextWaveCount; i++) {
-            SpawnAlien(alienSpawn.transform.position);
-        }
-        
+        spawnRemaining = nextWaveCount;
         nextWaveCount += 1;
     }
 }

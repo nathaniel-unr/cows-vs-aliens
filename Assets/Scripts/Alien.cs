@@ -9,9 +9,15 @@ public class Alien : MonoBehaviour
     private Vector3 target;
     bool hasTarget = false;
     int health = 3;
+    bool minimax = false;
     
     void Start() {
         AlienManager.GetInstance().RegisterAlien(this);
+        if(Random.Range(0, 2) == 0) {
+            minimax = true;
+        } else {
+            minimax = false;
+        }
     }
     
     void FixedUpdate() {
@@ -24,7 +30,7 @@ public class Alien : MonoBehaviour
                 return;
             }
                 
-            (int, int) nextGridPosition = gameManager.GetNextGridPosition(gridPosition, true);
+            (int, int) nextGridPosition = gameManager.GetNextGridPosition(gridPosition, minimax);
             target = gameManager.GridToWorldPosition(nextGridPosition);
             target.z = -1.0f;
             hasTarget = true;
