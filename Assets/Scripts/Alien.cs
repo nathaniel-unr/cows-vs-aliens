@@ -24,7 +24,7 @@ public class Alien : MonoBehaviour
                 return;
             }
                 
-            (int, int) nextGridPosition = gameManager.GetNextGridPosition(gridPosition);
+            (int, int) nextGridPosition = gameManager.GetNextGridPosition(gridPosition, true);
             target = gameManager.GridToWorldPosition(nextGridPosition);
             target.z = -1.0f;
             hasTarget = true;
@@ -41,6 +41,6 @@ public class Alien : MonoBehaviour
     
     public void ProcessHit() {
         health -= 1;
-        if(health <=0) AlienManager.GetInstance().RemoveAlien(this);
+        if(health <= 0) AlienManager.GetInstance().RemoveAlien(this);
     }
 }

@@ -127,38 +127,57 @@ public class GameManager : MonoBehaviour
         return (x, y);
     }
     
-    public (int, int) GetNextGridPosition((int, int) currentPosition) {
+    public (int, int) GetNextGridPosition((int, int) currentPosition, bool minimax) {
         int currentPositionX = currentPosition.Item1;
         int currentPositionY = currentPosition.Item2;
-        int bestMoveX = -1;
-        int bestMoveY = -1;
-        int bestDistance = Int32.MaxValue / 2;
         
-        if(currentPositionX + 1 < distanceMap.GetLength(0)) {
-            bestMoveX = currentPositionX + 1;
-            bestMoveY = currentPositionY;
-            bestDistance = distanceMap[currentPositionX + 1, currentPositionY];
+        List<(int, int, int)> moves = new List<(int, int, int)>();
+        
+        if(currentPositionX + 1 < distanceMap.GetLength(0) && distanceMap[currentPositionX + 1, currentPositionY] < 1000) {            
+            moves.Add((
+                distanceMap[currentPositionX + 1, currentPositionY],
+                currentPositionX + 1,
+                currentPositionY
+            ));
         }
         
-        if(currentPositionX - 1 >= 0 && distanceMap[currentPositionX - 1, currentPositionY] < bestDistance) {
-            bestMoveX = currentPositionX - 1;
-            bestMoveY = currentPositionY;
-            bestDistance = distanceMap[currentPositionX - 1, currentPositionY];
+        if(currentPositionX - 1 >= 0 && distanceMap[currentPositionX - 1, currentPositionY] < 1000) {            
+            moves.Add((
+                distanceMap[currentPositionX - 1, currentPositionY],
+                currentPositionX - 1,
+                currentPositionY
+            ));
         }
         
-        if(currentPositionY + 1 < distanceMap.GetLength(1) && distanceMap[currentPositionX, currentPositionY + 1] < bestDistance) {
-            bestMoveX = currentPositionX;
-            bestMoveY = currentPositionY + 1;
-            bestDistance = distanceMap[currentPositionX, currentPositionY + 1];
+        if(currentPositionY + 1 < distanceMap.GetLength(1) && distanceMap[currentPositionX, currentPositionY + 1] < 1000) {            
+            moves.Add((
+                distanceMap[currentPositionX, currentPositionY + 1],
+                currentPositionX,
+                currentPositionY + 1
+            ));
         }
         
-        if(currentPositionY - 1 >= 0 && distanceMap[currentPositionX, currentPositionY - 1] < bestDistance) {
-            bestMoveX = currentPositionX;
-            bestMoveY = currentPositionY - 1;
-            bestDistance = distanceMap[currentPositionX, currentPositionY - 1];
+        if(currentPositionY - 1 >= 0 && distanceMap[currentPositionX, currentPositionY - 1] < 1000) {
+            moves.Add((
+                distanceMap[currentPositionX, currentPositionY - 1],
+                currentPositionX,
+                currentPositionY - 1
+            ));
         }
         
-        return (bestMoveX, bestMoveY);
+        if(moves.Count == 0) {
+            return (-1, -1);
+        }
+        
+        moves.Sort(delegate((int, int, int) t1, (int, int, int) t2) {
+            return t1.Item1.CompareTo(t2.Item1);
+        });
+        
+        if(moves.Count == 1 || !minimax || distanceMap[currentPositionX, currentPositionY] < moves[1].Item1) {
+            return (moves[0].Item2, moves[0].Item3);
+        }
+        
+        return (moves[1].Item2, moves[1].Item3);
     }
     
     public Vector2 GridToWorldPosition((int, int) gridPosition) {
