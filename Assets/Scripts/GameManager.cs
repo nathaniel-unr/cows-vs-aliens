@@ -21,6 +21,7 @@ public class GameManager : MonoBehaviour
     // Prefabs
     public GameObject brightGrassTilePrefab = null;
     public GameObject TowerPrefab = null;
+    public GameObject alienSpawn = null;
     
     // These probably shouldn't be tunable from the editor yet
     int minX = -8;
@@ -29,11 +30,13 @@ public class GameManager : MonoBehaviour
     int maxY = 4;
     
     // Member variables
-    int health = 5;
+    int health = 20;
     
     // TODO: Merge maps with classes
     public int[,] grid = null;
     public int[,] distanceMap = null;
+    
+    private GameObject[,] towers = null;
     
     public GameObject HealthText = null;
     
@@ -43,6 +46,8 @@ public class GameManager : MonoBehaviour
         grid = new int[mapXSize, mapYSize];
         
         distanceMap = new int[mapXSize, mapYSize];
+        
+        towers = new GameObject[mapXSize, mapYSize];
         
         for(int posY = 0; minY + posY <= maxY; posY++) {
             for (int posX = 0; minX + posX <= maxX; posX++) {
@@ -77,6 +82,29 @@ public class GameManager : MonoBehaviour
                gridPositionY < grid.GetLength(1) &&
                grid[gridPositionX, gridPositionY] == 0) {
                 SpawnTower(gridPositionX, gridPositionY);
+                   
+                ClearDistanceMap();
+                GenerateDistanceMap();
+                
+                (int gridPositionAlienSpawnX, int gridPositionAlienSpawnY) = GetGridPosition(alienSpawn.transform.position.x, alienSpawn.transform.position.y);
+                if(distanceMap[gridPositionAlienSpawnX, gridPositionAlienSpawnY] > 1000) {
+                    DestroyTower(gridPositionX, gridPositionY);
+                    
+                    ClearDistanceMap();
+                    GenerateDistanceMap();
+                }
+            }
+        } else if(Input.GetMouseButtonDown(1)) {
+            Vector3 mousePos3 = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            
+            (int gridPositionX, int gridPositionY) = GetGridPosition(mousePos3.x, mousePos3.y);
+            
+            if(gridPositionX >= 0 && 
+               gridPositionX < grid.GetLength(0) && 
+               gridPositionY >= 0 && 
+               gridPositionY < grid.GetLength(1) &&
+               grid[gridPositionX, gridPositionY] == 3) {
+                DestroyTower(gridPositionX, gridPositionY);
                    
                 ClearDistanceMap();
                 GenerateDistanceMap();
@@ -206,8 +234,15 @@ public class GameManager : MonoBehaviour
     void SpawnTower(int gridPositionX, int gridPositionY) {
         Vector2 worldPosition = GridToWorldPosition((gridPositionX, gridPositionY));
         GameObject tower = Instantiate(TowerPrefab);
+        towers[gridPositionX, gridPositionY] = tower;
         tower.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f);
         
         grid[gridPositionX, gridPositionY] = 3;
+    }
+    
+    void DestroyTower(int gridPositionX, int gridPositionY) {
+        grid[gridPositionX, gridPositionY] = 0;
+        Destroy(towers[gridPositionX, gridPositionY]);
+        towers[gridPositionX, gridPositionY] = null;
     }
 }
