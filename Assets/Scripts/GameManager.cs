@@ -19,7 +19,8 @@ public class GameManager : MonoBehaviour
     }
     
     // Prefabs
-    public GameObject brightGrassTilePrefab = null;
+    public GameObject GrassTilePrefab = null;
+    public GameObject Grass2TilePrefab = null;
     public GameObject TowerPrefab = null;
     public GameObject alienSpawn = null;
     
@@ -51,12 +52,10 @@ public class GameManager : MonoBehaviour
         
         for(int posY = 0; minY + posY <= maxY; posY++) {
             for (int posX = 0; minX + posX <= maxX; posX++) {
-                if(posX % 2 ==  posY % 2) {
-                    GameObject tile = Instantiate(brightGrassTilePrefab);
-                    tile.transform.position = new Vector3(minX + posX, minY + posY, 1.0f);
-                    
-                    grid[posX, posY] = 0;
-                }
+                // posX % 2 == posY % 2
+                GameObject tile = Instantiate(UnityEngine.Random.Range(0, 10) == 0 ? Grass2TilePrefab : GrassTilePrefab);
+                tile.transform.position = new Vector3(minX + posX, minY + posY, 1.0f);
+                grid[posX, posY] = 0;
             }
         }
         
@@ -228,7 +227,7 @@ public class GameManager : MonoBehaviour
             // TODO: Game Over
         } 
         
-        HealthText.GetComponent<TextMeshProUGUI>().SetText("Health: " + health);
+        HealthText.GetComponent<TextMeshProUGUI>().SetText("Cows: " + health);
     }
     
     void SpawnTower(int gridPositionX, int gridPositionY) {

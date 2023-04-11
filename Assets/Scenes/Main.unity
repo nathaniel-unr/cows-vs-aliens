@@ -311,8 +311,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 0, b: 0, a: 0.4117647}
+  m_Sprite: {fileID: 21300000, guid: d7b60493dc9238d47883ea32cd297e05, type: 3}
+  m_Color: {r: 0.68131447, g: 0, b: 1, a: 0.6313726}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -331,7 +331,7 @@ Transform:
   m_GameObject: {fileID: 847360172}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 8, y: -4, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -647,7 +647,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c45ef9c6cd5739e499fd761fa134c35c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  brightGrassTilePrefab: {fileID: 8679067232529177870, guid: 8e2af4ae552eed044b4e853e0e0dd1a2, type: 3}
+  GrassTilePrefab: {fileID: 3515858001365292224, guid: 338c6899721bc924ab3bd39a6a00e739, type: 3}
+  Grass2TilePrefab: {fileID: 5045746396839277093, guid: 02c585a86f03c2845baca7a924d35351, type: 3}
   TowerPrefab: {fileID: 409738090341001993, guid: 4e35121f2537da44eadae7ff17fc5922, type: 3}
   alienSpawn: {fileID: 847360172}
   HealthText: {fileID: 1389673826}
@@ -912,6 +913,18 @@ PrefabInstance:
     - target: {fileID: 2821446358093121736, guid: fff907a6ea400294592436654d24e8f5, type: 3}
       propertyPath: m_Name
       value: Alien
+      objectReference: {fileID: 0}
+    - target: {fileID: 2821446358093121737, guid: fff907a6ea400294592436654d24e8f5, type: 3}
+      propertyPath: m_FlipX
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2821446358093121737, guid: fff907a6ea400294592436654d24e8f5, type: 3}
+      propertyPath: m_FlipY
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2821446358093121737, guid: fff907a6ea400294592436654d24e8f5, type: 3}
+      propertyPath: m_MaskInteraction
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2821446358093121738, guid: fff907a6ea400294592436654d24e8f5, type: 3}
       propertyPath: m_RootOrder

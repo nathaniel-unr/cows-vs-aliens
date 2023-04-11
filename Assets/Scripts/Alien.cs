@@ -20,6 +20,10 @@ public class Alien : MonoBehaviour
         }
     }
     
+    void Update() {
+        transform.Rotate(new Vector3(0.0f, 0.0f, 100.0f * Time.deltaTime));
+    }
+    
     void FixedUpdate() {
         if(!hasTarget) {
             GameManager gameManager = GameManager.GetInstance();
