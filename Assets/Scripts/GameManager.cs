@@ -4,6 +4,93 @@ using UnityEngine;
 using System;
 using TMPro;
 
+class GameGrid {
+    public const int OBJECT_EMPTY = 0;
+    
+    private int[,] distances = null;
+    private int[,] objects = null;
+    
+    public GameGrid(int sizeX, int sizeY) {
+        distances = new int[sizeX, sizeY];
+        objects = new int[sizeX, sizeY];
+        
+        for(int i = 0; i < objects.GetLength(0); i++) {
+            for(int j = 0; j < objects.GetLength(1); j++) {
+                objects[i, j] = GameGrid.OBJECT_EMPTY;
+            }
+        }
+        
+        ClearDistances();
+    }
+    
+    public int GetSizeX() {
+        return distances.GetLength(0);
+    }
+    
+     public int GetSizeY() {
+        return distances.GetLength(1);
+    }
+    
+    public void ClearDistances() {
+        for(int i = 0; i < distances.GetLength(0); i++) {
+            for (int j = 0; j < distances.GetLength(1); j++) {
+                distances[i, j] = Int32.MaxValue / 2;
+            }
+        }
+    }
+    
+    public void GenerateDistances() {
+        Queue<(int, int, int)> queue = new Queue<(int, int, int)>();
+        
+        // TODO: Avoid hardcoding
+        int startX = 0;
+        int startY = 4 - (-4); // maxY - minY;
+        
+        queue.Enqueue((startX, startY, 0));
+        
+        while(queue.Count > 0) {
+            (int x, int y, int distance) = queue.Dequeue();
+            if(distance >= distances[x, y] || objects[x, y] == 3) continue;
+            
+            distances[x, y] = distance;
+            
+            if(x + 1 < distances.GetLength(0) && distances[x + 1, y] > distance + 1) {
+                queue.Enqueue((x + 1, y, distance + 1));
+            } 
+            if(y + 1 < distances.GetLength(1) && distances[x, y + 1] > distance + 1) {
+                queue.Enqueue((x, y + 1, distance + 1));
+            }
+            if(x - 1 >= 0 && distances[x - 1, y] > distance + 1) {
+                queue.Enqueue((x - 1, y, distance + 1));
+            }
+            if(y - 1 >= 0 && distances[x, y - 1] > distance + 1) {
+                queue.Enqueue((x, y - 1, distance + 1));
+            }
+        }
+    }
+    
+    public void RegenerateDistances() {
+        ClearDistances();
+        GenerateDistances();
+    }
+    
+    public bool IsValidIndex(int x, int y) {
+        return x >= 0 && x < GetSizeX() && y < GetSizeY() && y >= 0;
+    }
+    
+    public int GetDistance(int x, int y) {
+        return distances[x, y];
+    }
+    
+    public int GetObject(int x, int y) {
+        return objects[x, y];
+    }
+    
+    public void SetObject(int x, int y, int obj) {
+        objects[x, y] = obj;
+    }
+}
+
 public class GameManager : MonoBehaviour
 {
     private static GameManager instance = null;
@@ -33,9 +120,7 @@ public class GameManager : MonoBehaviour
     // Member variables
     int health = 20;
     
-    // TODO: Merge maps with classes
-    public int[,] grid = null;
-    public int[,] distanceMap = null;
+    GameGrid gameGrid = null;
     
     private GameObject[,] towers = null;
     
@@ -44,27 +129,23 @@ public class GameManager : MonoBehaviour
     void Start() {
         int mapXSize = maxX - minX + 1;
         int mapYSize = maxY - minY + 1;
-        grid = new int[mapXSize, mapYSize];
-        
-        distanceMap = new int[mapXSize, mapYSize];
+        gameGrid = new GameGrid(mapXSize, mapYSize);
         
         towers = new GameObject[mapXSize, mapYSize];
         
         for(int posY = 0; minY + posY <= maxY; posY++) {
             for (int posX = 0; minX + posX <= maxX; posX++) {
-                // posX % 2 == posY % 2
                 GameObject tile = Instantiate(UnityEngine.Random.Range(0, 10) == 0 ? Grass2TilePrefab : GrassTilePrefab);
                 tile.transform.position = new Vector3(minX + posX, minY + posY, 1.0f);
-                grid[posX, posY] = 0;
             }
         }
         
-        // TODO: Make barn and alien spawn declare themselves to avoid hardcoding
-        grid[0, maxY - minY] = 1;
-        grid[maxX - minX, 0] = 2;
-
-        ClearDistanceMap();
-        GenerateDistanceMap();
+        // TODO: Make barn and alien spawn declare themselves to avoid hardcoding.
+        // NOTE: The GameGrid class itself makes some assumptions based on these values.
+        gameGrid.SetObject(0, maxY - minY, 1);
+        gameGrid.SetObject(maxX - minX, 0, 2);
+        
+        gameGrid.GenerateDistances();
         
         SetHealth(20);
     }
@@ -75,22 +156,16 @@ public class GameManager : MonoBehaviour
             
             (int gridPositionX, int gridPositionY) = GetGridPosition(mousePos3.x, mousePos3.y);
             
-            if(gridPositionX >= 0 && 
-               gridPositionX < grid.GetLength(0) && 
-               gridPositionY >= 0 && 
-               gridPositionY < grid.GetLength(1) &&
-               grid[gridPositionX, gridPositionY] == 0) {
+            if(gameGrid.IsValidIndex(gridPositionX, gridPositionY) && gameGrid.GetObject(gridPositionX, gridPositionY) == GameGrid.OBJECT_EMPTY) {
                 SpawnTower(gridPositionX, gridPositionY);
                    
-                ClearDistanceMap();
-                GenerateDistanceMap();
+                gameGrid.RegenerateDistances();
                 
                 (int gridPositionAlienSpawnX, int gridPositionAlienSpawnY) = GetGridPosition(alienSpawn.transform.position.x, alienSpawn.transform.position.y);
-                if(distanceMap[gridPositionAlienSpawnX, gridPositionAlienSpawnY] > 1000) {
+                if(gameGrid.GetDistance(gridPositionAlienSpawnX, gridPositionAlienSpawnY) > 1000) {
                     DestroyTower(gridPositionX, gridPositionY);
                     
-                    ClearDistanceMap();
-                    GenerateDistanceMap();
+                    gameGrid.RegenerateDistances();
                 }
             }
         } else if(Input.GetMouseButtonDown(1)) {
@@ -98,49 +173,10 @@ public class GameManager : MonoBehaviour
             
             (int gridPositionX, int gridPositionY) = GetGridPosition(mousePos3.x, mousePos3.y);
             
-            if(gridPositionX >= 0 && 
-               gridPositionX < grid.GetLength(0) && 
-               gridPositionY >= 0 && 
-               gridPositionY < grid.GetLength(1) &&
-               grid[gridPositionX, gridPositionY] == 3) {
+            if(gameGrid.IsValidIndex(gridPositionX, gridPositionY) && gameGrid.GetObject(gridPositionX, gridPositionY) == 3) {
                 DestroyTower(gridPositionX, gridPositionY);
                    
-                ClearDistanceMap();
-                GenerateDistanceMap();
-            }
-        }
-    }
-    
-    void ClearDistanceMap() {
-        for(int i = 0; i < distanceMap.GetLength(0); i++) {
-            for (int j = 0; j < distanceMap.GetLength(1); j++) {
-                distanceMap[i, j] = Int32.MaxValue / 2;
-            }
-        }
-    }
-    
-    void GenerateDistanceMap() {
-        Queue<(int, int, int)> queue = new Queue<(int, int, int)>();
-        
-        queue.Enqueue((0, maxY - minY, 0));
-        
-        while(queue.Count > 0) {
-            (int x, int y, int distance) = queue.Dequeue();
-            if(distance >= distanceMap[x, y] || grid[x,y] == 3) continue;
-            
-            distanceMap[x, y] = distance;
-            
-            if(x + 1 < distanceMap.GetLength(0) && distanceMap[x + 1, y] > distance + 1) {
-                queue.Enqueue((x + 1, y, distance + 1));
-            } 
-            if(y + 1 < distanceMap.GetLength(1) && distanceMap[x, y + 1] > distance + 1) {
-                queue.Enqueue((x, y + 1, distance + 1));
-            }
-            if(x - 1 >= 0 && distanceMap[x - 1, y] > distance + 1) {
-                queue.Enqueue((x - 1, y, distance + 1));
-            }
-            if(y - 1 >= 0 && distanceMap[x, y - 1] > distance + 1) {
-                queue.Enqueue((x, y - 1, distance + 1));
+                gameGrid.RegenerateDistances();
             }
         }
     }
@@ -160,33 +196,33 @@ public class GameManager : MonoBehaviour
         
         List<(int, int, int)> moves = new List<(int, int, int)>();
         
-        if(currentPositionX + 1 < distanceMap.GetLength(0) && distanceMap[currentPositionX + 1, currentPositionY] < 1000) {            
+        if(currentPositionX + 1 < gameGrid.GetSizeX() && gameGrid.GetDistance(currentPositionX + 1, currentPositionY) < 1000) {            
             moves.Add((
-                distanceMap[currentPositionX + 1, currentPositionY],
+                gameGrid.GetDistance(currentPositionX + 1, currentPositionY),
                 currentPositionX + 1,
                 currentPositionY
             ));
         }
         
-        if(currentPositionX - 1 >= 0 && distanceMap[currentPositionX - 1, currentPositionY] < 1000) {            
+        if(currentPositionX - 1 >= 0 && gameGrid.GetDistance(currentPositionX - 1, currentPositionY) < 1000) {            
             moves.Add((
-                distanceMap[currentPositionX - 1, currentPositionY],
+                gameGrid.GetDistance(currentPositionX - 1, currentPositionY),
                 currentPositionX - 1,
                 currentPositionY
             ));
         }
         
-        if(currentPositionY + 1 < distanceMap.GetLength(1) && distanceMap[currentPositionX, currentPositionY + 1] < 1000) {            
+        if(currentPositionY + 1 < gameGrid.GetSizeY() && gameGrid.GetDistance(currentPositionX, currentPositionY + 1) < 1000) {            
             moves.Add((
-                distanceMap[currentPositionX, currentPositionY + 1],
+                gameGrid.GetDistance(currentPositionX, currentPositionY + 1),
                 currentPositionX,
                 currentPositionY + 1
             ));
         }
         
-        if(currentPositionY - 1 >= 0 && distanceMap[currentPositionX, currentPositionY - 1] < 1000) {
+        if(currentPositionY - 1 >= 0 && gameGrid.GetDistance(currentPositionX, currentPositionY - 1) < 1000) {
             moves.Add((
-                distanceMap[currentPositionX, currentPositionY - 1],
+                gameGrid.GetDistance(currentPositionX, currentPositionY - 1),
                 currentPositionX,
                 currentPositionY - 1
             ));
@@ -200,7 +236,7 @@ public class GameManager : MonoBehaviour
             return t1.Item1.CompareTo(t2.Item1);
         });
         
-        if(moves.Count == 1 || !minimax || distanceMap[currentPositionX, currentPositionY] < moves[1].Item1) {
+        if(moves.Count == 1 || !minimax || gameGrid.GetDistance(currentPositionX, currentPositionY) < moves[1].Item1) {
             return (moves[0].Item2, moves[0].Item3);
         }
         
@@ -213,7 +249,7 @@ public class GameManager : MonoBehaviour
     
     public bool IsAtBarn((int, int) gridPosition) {
         // Debug.Log(gridPosition.Item1 + " " + gridPosition.Item2 + " = " + grid[gridPosition.Item1, gridPosition.Item2]);
-        return grid[gridPosition.Item1, gridPosition.Item2] == 1;
+        return gameGrid.GetObject(gridPosition.Item1, gridPosition.Item2) == 1;
     }
     
     public void DecrementHealth() {        
@@ -236,11 +272,12 @@ public class GameManager : MonoBehaviour
         towers[gridPositionX, gridPositionY] = tower;
         tower.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f);
         
-        grid[gridPositionX, gridPositionY] = 3;
+        gameGrid.SetObject(gridPositionX, gridPositionY, 3);
     }
     
     void DestroyTower(int gridPositionX, int gridPositionY) {
-        grid[gridPositionX, gridPositionY] = 0;
+        gameGrid.SetObject(gridPositionX, gridPositionY, GameGrid.OBJECT_EMPTY);
+        
         Destroy(towers[gridPositionX, gridPositionY]);
         towers[gridPositionX, gridPositionY] = null;
     }
