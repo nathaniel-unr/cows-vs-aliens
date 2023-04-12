@@ -270,6 +270,7 @@ public class GameManager : MonoBehaviour
     private GameObject[,] towers = null;
     
     public GameObject HealthText = null;
+    public GameObject GameOverScreen = null;
     
     int towerCost = 4;
     
@@ -370,7 +371,9 @@ public class GameManager : MonoBehaviour
         
         if(health <= 0) {
             Time.timeScale = 0;
+            
             // TODO: Activate Game Over Screen
+            GameOverScreen.SetActive(true);
             // SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         } 
         
