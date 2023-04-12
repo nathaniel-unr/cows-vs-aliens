@@ -101,6 +101,63 @@ class GameGrid : ICloneable {
         
         return ret;
     }
+    
+    public (int, int) GetNextPositionSimple((int currentPositionX, int currentPositionY) t) {
+        return GetNextPositionSimple(t.currentPositionX, t.currentPositionY);
+    }
+    
+    public (int, int) GetNextPositionSimple(int currentPositionX, int currentPositionY) {
+        
+        List<(int, int, int)> moves = new List<(int, int, int)>();
+        
+        if(currentPositionX + 1 < GetSizeX() && GetDistance(currentPositionX + 1, currentPositionY) < 1000) {            
+            moves.Add((
+                GetDistance(currentPositionX + 1, currentPositionY),
+                currentPositionX + 1,
+                currentPositionY
+            ));
+        }
+        
+        if(currentPositionX - 1 >= 0 && GetDistance(currentPositionX - 1, currentPositionY) < 1000) {            
+            moves.Add((
+                GetDistance(currentPositionX - 1, currentPositionY),
+                currentPositionX - 1,
+                currentPositionY
+            ));
+        }
+        
+        if(currentPositionY + 1 < GetSizeY() && GetDistance(currentPositionX, currentPositionY + 1) < 1000) {            
+            moves.Add((
+                GetDistance(currentPositionX, currentPositionY + 1),
+                currentPositionX,
+                currentPositionY + 1
+            ));
+        }
+        
+        if(currentPositionY - 1 >= 0 && GetDistance(currentPositionX, currentPositionY - 1) < 1000) {
+            moves.Add((
+                GetDistance(currentPositionX, currentPositionY - 1),
+                currentPositionX,
+                currentPositionY - 1
+            ));
+        }
+        
+        if(moves.Count == 0) {
+            return (-1, -1);
+        }
+        
+        moves.Sort(delegate((int, int, int) t1, (int, int, int) t2) {
+            return t1.Item1.CompareTo(t2.Item1);
+        });
+        
+        while(moves[moves.Count - 1].Item1 > moves[0].Item1) {
+            moves.RemoveAt(moves.Count - 1);
+        }
+        
+        int index = UnityEngine.Random.Range(0, moves.Count);
+        
+        return (moves[index].Item2, moves[index].Item3);
+    }
 }
 
 public class GameManager : MonoBehaviour
@@ -215,6 +272,8 @@ public class GameManager : MonoBehaviour
     }
     
     public (int, int) GetNextGridPosition((int, int) currentPosition, bool minimax) {
+        if(!minimax) return gameGrid.GetNextPositionSimple(currentPosition);
+        
         int currentPositionX = currentPosition.Item1;
         int currentPositionY = currentPosition.Item2;
         
