@@ -51,6 +51,11 @@ public class Alien : MonoBehaviour
     
     public void ProcessHit() {
         health -= 1;
-        if(health <= 0) AlienManager.GetInstance().RemoveAlien(this);
+        if(health <= 0) {
+            MoneyManager moneyManager = MoneyManager.GetInstance();
+            moneyManager.SetMoney(moneyManager.GetMoney() + 1);
+            
+            AlienManager.GetInstance().RemoveAlien(this);
+        }
     }
 }

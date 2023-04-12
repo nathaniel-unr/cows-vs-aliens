@@ -4,11 +4,15 @@ using UnityEngine;
 using System;
 using TMPro;
 
-class GameGrid {
+class GameGrid : ICloneable {
     public const int OBJECT_EMPTY = 0;
+    public const int OBJECT_BARN = 1;
+    public const int OBJECT_TOWER = 3;
     
     private int[,] distances = null;
     private int[,] objects = null;
+    
+    GameGrid(){}
     
     public GameGrid(int sizeX, int sizeY) {
         distances = new int[sizeX, sizeY];
@@ -50,14 +54,14 @@ class GameGrid {
         
         while(queue.Count > 0) {
             (int x, int y, int distance) = queue.Dequeue();
-            if(distance >= distances[x, y] || objects[x, y] == 3) continue;
+            if(distance >= distances[x, y] || objects[x, y] == GameGrid.OBJECT_TOWER) continue;
             
             distances[x, y] = distance;
             
-            if(x + 1 < distances.GetLength(0) && distances[x + 1, y] > distance + 1) {
+            if(x + 1 < GetSizeX() && distances[x + 1, y] > distance + 1) {
                 queue.Enqueue((x + 1, y, distance + 1));
             } 
-            if(y + 1 < distances.GetLength(1) && distances[x, y + 1] > distance + 1) {
+            if(y + 1 < GetSizeY() && distances[x, y + 1] > distance + 1) {
                 queue.Enqueue((x, y + 1, distance + 1));
             }
             if(x - 1 >= 0 && distances[x - 1, y] > distance + 1) {
@@ -88,6 +92,14 @@ class GameGrid {
     
     public void SetObject(int x, int y, int obj) {
         objects[x, y] = obj;
+    }
+    
+    public object Clone(){
+        GameGrid ret = new GameGrid();
+        ret.distances = (int[,])distances.Clone();
+        ret.objects = (int[,])objects.Clone();
+        
+        return ret;
     }
 }
 
@@ -126,6 +138,8 @@ public class GameManager : MonoBehaviour
     
     public GameObject HealthText = null;
     
+    int towerCost = 4;
+    
     void Start() {
         int mapXSize = maxX - minX + 1;
         int mapYSize = maxY - minY + 1;
@@ -156,16 +170,21 @@ public class GameManager : MonoBehaviour
             
             (int gridPositionX, int gridPositionY) = GetGridPosition(mousePos3.x, mousePos3.y);
             
-            if(gameGrid.IsValidIndex(gridPositionX, gridPositionY) && gameGrid.GetObject(gridPositionX, gridPositionY) == GameGrid.OBJECT_EMPTY) {
+            MoneyManager moneyManager = MoneyManager.GetInstance();
+            int money = moneyManager.GetMoney();
+            
+            if(gameGrid.IsValidIndex(gridPositionX, gridPositionY) && gameGrid.GetObject(gridPositionX, gridPositionY) == GameGrid.OBJECT_EMPTY && money >= towerCost) {
                 SpawnTower(gridPositionX, gridPositionY);
                    
                 gameGrid.RegenerateDistances();
                 
                 (int gridPositionAlienSpawnX, int gridPositionAlienSpawnY) = GetGridPosition(alienSpawn.transform.position.x, alienSpawn.transform.position.y);
-                if(gameGrid.GetDistance(gridPositionAlienSpawnX, gridPositionAlienSpawnY) > 1000) {
+                if(gameGrid.GetObject(gridPositionAlienSpawnX, gridPositionAlienSpawnY) == GameGrid.OBJECT_TOWER) {
                     DestroyTower(gridPositionX, gridPositionY);
                     
                     gameGrid.RegenerateDistances();
+                } else {
+                    moneyManager.SetMoney(money - towerCost);
                 }
             }
         } else if(Input.GetMouseButtonDown(1)) {
@@ -173,10 +192,15 @@ public class GameManager : MonoBehaviour
             
             (int gridPositionX, int gridPositionY) = GetGridPosition(mousePos3.x, mousePos3.y);
             
-            if(gameGrid.IsValidIndex(gridPositionX, gridPositionY) && gameGrid.GetObject(gridPositionX, gridPositionY) == 3) {
+            MoneyManager moneyManager = MoneyManager.GetInstance();
+            int money = moneyManager.GetMoney();
+            
+            if(gameGrid.IsValidIndex(gridPositionX, gridPositionY) && gameGrid.GetObject(gridPositionX, gridPositionY) == GameGrid.OBJECT_TOWER) {
                 DestroyTower(gridPositionX, gridPositionY);
                    
                 gameGrid.RegenerateDistances();
+                
+                moneyManager.SetMoney(money + (int)(towerCost * 0.75));
             }
         }
     }
@@ -249,7 +273,7 @@ public class GameManager : MonoBehaviour
     
     public bool IsAtBarn((int, int) gridPosition) {
         // Debug.Log(gridPosition.Item1 + " " + gridPosition.Item2 + " = " + grid[gridPosition.Item1, gridPosition.Item2]);
-        return gameGrid.GetObject(gridPosition.Item1, gridPosition.Item2) == 1;
+        return gameGrid.GetObject(gridPosition.Item1, gridPosition.Item2) == GameGrid.OBJECT_BARN;
     }
     
     public void DecrementHealth() {        
@@ -260,7 +284,9 @@ public class GameManager : MonoBehaviour
         health = newHealth;
         
         if(health <= 0) {
-            // TODO: Game Over
+            Time.timeScale = 0;
+            // TODO: Activate Game Over Screen
+            // SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         } 
         
         HealthText.GetComponent<TextMeshProUGUI>().SetText("Cows: " + health);
@@ -272,7 +298,7 @@ public class GameManager : MonoBehaviour
         towers[gridPositionX, gridPositionY] = tower;
         tower.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f);
         
-        gameGrid.SetObject(gridPositionX, gridPositionY, 3);
+        gameGrid.SetObject(gridPositionX, gridPositionY, GameGrid.OBJECT_TOWER);
     }
     
     void DestroyTower(int gridPositionX, int gridPositionY) {

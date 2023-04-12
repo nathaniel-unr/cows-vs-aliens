@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class SpawnManager : MonoBehaviour
 {
@@ -16,14 +17,21 @@ public class SpawnManager : MonoBehaviour
         }
     }
     
+    public GameObject WaveText = null;
+    
+    // Prefabs
     public GameObject AlienPrefab = null;
     public GameObject alienSpawn = null;
     
-    int nextWaveCount = 1;
+    
+    public int CurrentWave = 1;
+    
     int spawnRemaining = 0;
     int nextAlienSpawnSleep = 0;
     
-    void Start() {}
+    void Start() {
+        SetWave(CurrentWave);
+    }
 
     void Update() {
         if(AlienManager.GetInstance().GetAliens().Count == 0 && spawnRemaining == 0) {
@@ -46,7 +54,12 @@ public class SpawnManager : MonoBehaviour
     }
     
     void SpawnWave() {
-        spawnRemaining = nextWaveCount;
-        nextWaveCount += 1;
+        spawnRemaining = CurrentWave;
+        SetWave(CurrentWave + 1);
+    }
+    
+    void SetWave(int newCurrentWave) {
+        CurrentWave = newCurrentWave;
+        WaveText.GetComponent<TextMeshProUGUI>().SetText("Wave: " + CurrentWave);
     }
 }
