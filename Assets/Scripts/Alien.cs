@@ -5,19 +5,15 @@ using UnityEngine;
 public class Alien : MonoBehaviour
 {
     public float StepSize = 0.05f;
+    public bool Minimax = false;
     
     private Vector3 target;
     bool hasTarget = false;
     int health = 3;
-    bool minimax = false;
     
     void Start() {
         AlienManager.GetInstance().RegisterAlien(this);
-        if(Random.Range(0, 2) == 0) {
-            minimax = true;
-        } else {
-            minimax = false;
-        }
+        Minimax = Random.Range(0, 2) == 0;
     }
     
     void Update() {
@@ -34,7 +30,7 @@ public class Alien : MonoBehaviour
                 return;
             }
                 
-            (int, int) nextGridPosition = gameManager.GetNextGridPosition(gridPosition, minimax);
+            (int, int) nextGridPosition = gameManager.GetNextGridPosition(gridPosition, Minimax);
             target = gameManager.GridToWorldPosition(nextGridPosition);
             target.z = -1.0f;
             hasTarget = true;

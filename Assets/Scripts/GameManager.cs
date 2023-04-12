@@ -102,12 +102,7 @@ class GameGrid : ICloneable {
         return ret;
     }
     
-    public (int, int) GetNextPositionSimple((int currentPositionX, int currentPositionY) t) {
-        return GetNextPositionSimple(t.currentPositionX, t.currentPositionY);
-    }
-    
-    public (int, int) GetNextPositionSimple(int currentPositionX, int currentPositionY) {
-        
+    private List<(int, int, int)> GetNextPositionMoves(int currentPositionX, int currentPositionY) {
         List<(int, int, int)> moves = new List<(int, int, int)>();
         
         if(currentPositionX + 1 < GetSizeX() && GetDistance(currentPositionX + 1, currentPositionY) < 1000) {            
@@ -142,21 +137,102 @@ class GameGrid : ICloneable {
             ));
         }
         
-        if(moves.Count == 0) {
-            return (-1, -1);
-        }
-        
         moves.Sort(delegate((int, int, int) t1, (int, int, int) t2) {
             return t1.Item1.CompareTo(t2.Item1);
         });
+        
+        return moves;
+    }
+    
+    public (int, int) GetNextPositionSimple((int currentPositionX, int currentPositionY) t) {
+        return GetNextPositionSimple(t.currentPositionX, t.currentPositionY);
+    }
+    
+    public (int, int) GetNextPositionSimple(int currentPositionX, int currentPositionY) {
+        List<(int, int, int)> moves = GetNextPositionMoves(currentPositionX, currentPositionY);
+        
+        if(moves.Count == 0) {
+            return (-1, -1);
+        }
         
         while(moves[moves.Count - 1].Item1 > moves[0].Item1) {
             moves.RemoveAt(moves.Count - 1);
         }
         
         int index = UnityEngine.Random.Range(0, moves.Count);
-        
         return (moves[index].Item2, moves[index].Item3);
+    }
+    
+    public (int, int) GetNextPositionMinimax((int currentPositionX, int currentPositionY) t) {
+        return GetNextPositionMinimax(t.currentPositionX, t.currentPositionY);
+    }
+    
+    public (int, int) GetNextPositionMinimax(int currentPositionX, int currentPositionY) {
+        // Limited to depth = 2 to avoid blow-up, manually unrolled.
+        
+        // Depth 1.
+        List<(int, int, int)> moves = GetNextPositionMoves(currentPositionX, currentPositionY);
+        
+        if(moves.Count == 0) {
+            return (-1, -1);
+        }
+        
+        // Depth 2, enemy turn. Generate out of loop for performance.
+        // We assume that the AI's move has no effect on how the player will move.
+        // We also assume that the user will not perform multiple actions quickly, like placing multiple towers.
+        List<GameGrid> grids = new List<GameGrid>();
+        grids.Add((GameGrid)Clone());
+        
+        for(int i = 0; i < GetSizeX(); i++) {
+            for(int j = 0; j < GetSizeY(); j++) {
+                if(GetObject(i, j) == GameGrid.OBJECT_EMPTY) {
+                    GameGrid newGrid = (GameGrid)Clone();
+                    newGrid.SetObject(i, j, GameGrid.OBJECT_TOWER);
+                    grids.Add(newGrid);
+                } else if (GetObject(i, j) == GameGrid.OBJECT_TOWER) {
+                    GameGrid newGrid = (GameGrid)Clone();
+                    newGrid.SetObject(i, j, GameGrid.OBJECT_EMPTY);
+                    grids.Add(newGrid);
+                }
+            }
+        }
+        
+        // If enemy cannot move, use static evaluator.
+        if(grids.Count == 0) {
+            while(moves[moves.Count - 1].Item1 > moves[0].Item1) {
+                moves.RemoveAt(moves.Count - 1);
+            }
+            int index = UnityEngine.Random.Range(0, moves.Count);
+            return (moves[index].Item2, moves[index].Item3);
+        }
+        
+        // Recalculate move goodness based on all possible player moves.
+        // Max, since we want to minimize distance but the enemy wants to max.
+        for(int i = 0; i < moves.Count; i++) {
+            (int oldDistance, int x, int y) = moves[i];
+            
+            int maxDistance = Int32.MinValue;
+            for(int j = 0; j < grids.Count; j++) {
+                int distance = grids[i].GetDistance(x, y);
+                if(distance < 1000) {
+                    maxDistance = Math.Max(maxDistance, distance);
+                }
+            }
+            
+            moves[i] = (maxDistance, x, y);
+        }
+        
+        // Unity will hoist `index` so that its name clashes
+        {
+            moves.Sort(delegate((int, int, int) t1, (int, int, int) t2) {
+                return t1.Item1.CompareTo(t2.Item1);
+            });
+            while(moves[moves.Count - 1].Item1 > moves[0].Item1) {
+                moves.RemoveAt(moves.Count - 1);
+            }
+            int index = UnityEngine.Random.Range(0, moves.Count);
+            return (moves[index].Item2, moves[index].Item3);
+        }
     }
 }
 
@@ -273,57 +349,7 @@ public class GameManager : MonoBehaviour
     
     public (int, int) GetNextGridPosition((int, int) currentPosition, bool minimax) {
         if(!minimax) return gameGrid.GetNextPositionSimple(currentPosition);
-        
-        int currentPositionX = currentPosition.Item1;
-        int currentPositionY = currentPosition.Item2;
-        
-        List<(int, int, int)> moves = new List<(int, int, int)>();
-        
-        if(currentPositionX + 1 < gameGrid.GetSizeX() && gameGrid.GetDistance(currentPositionX + 1, currentPositionY) < 1000) {            
-            moves.Add((
-                gameGrid.GetDistance(currentPositionX + 1, currentPositionY),
-                currentPositionX + 1,
-                currentPositionY
-            ));
-        }
-        
-        if(currentPositionX - 1 >= 0 && gameGrid.GetDistance(currentPositionX - 1, currentPositionY) < 1000) {            
-            moves.Add((
-                gameGrid.GetDistance(currentPositionX - 1, currentPositionY),
-                currentPositionX - 1,
-                currentPositionY
-            ));
-        }
-        
-        if(currentPositionY + 1 < gameGrid.GetSizeY() && gameGrid.GetDistance(currentPositionX, currentPositionY + 1) < 1000) {            
-            moves.Add((
-                gameGrid.GetDistance(currentPositionX, currentPositionY + 1),
-                currentPositionX,
-                currentPositionY + 1
-            ));
-        }
-        
-        if(currentPositionY - 1 >= 0 && gameGrid.GetDistance(currentPositionX, currentPositionY - 1) < 1000) {
-            moves.Add((
-                gameGrid.GetDistance(currentPositionX, currentPositionY - 1),
-                currentPositionX,
-                currentPositionY - 1
-            ));
-        }
-        
-        if(moves.Count == 0) {
-            return (-1, -1);
-        }
-        
-        moves.Sort(delegate((int, int, int) t1, (int, int, int) t2) {
-            return t1.Item1.CompareTo(t2.Item1);
-        });
-        
-        if(moves.Count == 1 || !minimax || gameGrid.GetDistance(currentPositionX, currentPositionY) < moves[1].Item1) {
-            return (moves[0].Item2, moves[0].Item3);
-        }
-        
-        return (moves[1].Item2, moves[1].Item3);
+        return gameGrid.GetNextPositionMinimax(currentPosition);
     }
     
     public Vector2 GridToWorldPosition((int, int) gridPosition) {
