@@ -30,7 +30,7 @@ public class SpawnManager : MonoBehaviour
     int nextAlienSpawnSleep = 0;
     
     void Start() {
-        SetWave(CurrentWave);
+        SetCurrentWave(CurrentWave);
     }
 
     void Update() {
@@ -55,11 +55,15 @@ public class SpawnManager : MonoBehaviour
     
     void SpawnWave() {
         spawnRemaining = CurrentWave;
-        SetWave(CurrentWave + 1);
+        SetCurrentWave(CurrentWave + 1);
     }
     
-    void SetWave(int newCurrentWave) {
+    void SetCurrentWave(int newCurrentWave) {
         CurrentWave = newCurrentWave;
         WaveText.GetComponent<TextMeshProUGUI>().SetText("Wave: " + CurrentWave);
     }
+    
+    public int GetCurrentWave() {
+        return CurrentWave;
+    } 
 }

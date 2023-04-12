@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 class GameGrid : ICloneable {
     public const int OBJECT_EMPTY = 0;
@@ -271,6 +272,7 @@ public class GameManager : MonoBehaviour
     
     public GameObject HealthText = null;
     public GameObject GameOverScreen = null;
+    public GameObject GameOverWaveText = null;
     
     int towerCost = 4;
     
@@ -313,7 +315,7 @@ public class GameManager : MonoBehaviour
                 gameGrid.RegenerateDistances();
                 
                 (int gridPositionAlienSpawnX, int gridPositionAlienSpawnY) = GetGridPosition(alienSpawn.transform.position.x, alienSpawn.transform.position.y);
-                if(gameGrid.GetObject(gridPositionAlienSpawnX, gridPositionAlienSpawnY) == GameGrid.OBJECT_TOWER) {
+                if(gameGrid.GetDistance(gridPositionAlienSpawnX, gridPositionAlienSpawnY) > 1000) {
                     DestroyTower(gridPositionX, gridPositionY);
                     
                     gameGrid.RegenerateDistances();
@@ -372,9 +374,8 @@ public class GameManager : MonoBehaviour
         if(health <= 0) {
             Time.timeScale = 0;
             
-            // TODO: Activate Game Over Screen
             GameOverScreen.SetActive(true);
-            // SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            GameOverWaveText.GetComponent<TextMeshProUGUI>().SetText("Wave: " + SpawnManager.GetInstance().GetCurrentWave());
         } 
         
         HealthText.GetComponent<TextMeshProUGUI>().SetText("Cows: " + health);
@@ -394,5 +395,15 @@ public class GameManager : MonoBehaviour
         
         Destroy(towers[gridPositionX, gridPositionY]);
         towers[gridPositionX, gridPositionY] = null;
+    }
+    
+    public void LoadMainMenu() {
+        Time.timeScale = 1;
+        SceneManager.LoadScene("main menu");
+    }
+    
+    public void ReloadScene() {
+        Time.timeScale = 1;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }
